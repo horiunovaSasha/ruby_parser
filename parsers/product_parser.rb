@@ -12,7 +12,7 @@ require "./data_providers/value_provider.rb"
 class ProductParser
     CSS_SELECTOR = '.wf-container-main #content>div'
     CSS_TITLE_SELECTOR = '.entry-summary>h1'
-    CSS_DESC_SELECTOR = '.entry-summary div[itemprop=description]>p:first-child'
+    CSS_DESC_SELECTOR = '.entry-summary div[itemprop=description]>p'
     CSS_PRICE_SELECTOR = '.entry-summary div[itemprop=offers]>meta[itemprop=price]'
     CSS_AVAILABILITY_SELECTOR = '.entry-summary div[itemprop=offers]>link[itemprop=availability]'
     CSS_CATEGORIES_CODE_SELECTOR = '.entry-summary .product_meta span.posted_in a'
@@ -31,10 +31,18 @@ class ProductParser
             product = Product.new()
             product.id = doc['id'].split('-')[1]
             product.title = doc.css(CSS_TITLE_SELECTOR).text
-            product.description = doc.css(CSS_DESC_SELECTOR).text
+            #product.description = doc.css(CSS_DESC_SELECTOR).text
             product.price = doc.css(CSS_PRICE_SELECTOR).first()['content']
             product.availability = doc.css(CSS_AVAILABILITY_SELECTOR).first()['href'] == IN_STOCK
             product.vendor_code = doc.css(CSS_VENDOR_CODE_SELECTOR).text
+
+            descDom = doc.css(CSS_DESC_SELECTOR)
+
+            puts descDom.count()
+
+            if descDom.count() == 2 then
+                product.description = descDom.first().text 
+            end
 
             doc.css('div.images a').each do |img|
                 product.images.push(img['href'])
