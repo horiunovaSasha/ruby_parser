@@ -24,42 +24,46 @@ class ProductParser
     end
 
     def parse()
-        html = open(@url)
-        doc = Nokogiri::HTML(html).css(CSS_SELECTOR).first()
-
-        if (!doc.nil?) then
-            product = Product.new()
-            product.id = doc['id'].split('-')[1]
-            product.title = doc.css(CSS_TITLE_SELECTOR).text
-            #product.description = doc.css(CSS_DESC_SELECTOR).text
-            product.price = doc.css(CSS_PRICE_SELECTOR).first()['content']
-            product.availability = doc.css(CSS_AVAILABILITY_SELECTOR).first()['href'] == IN_STOCK
-            product.vendor_code = doc.css(CSS_VENDOR_CODE_SELECTOR).text
-
-            descDom = doc.css(CSS_DESC_SELECTOR)
-
-            puts descDom.count()
-
-            if descDom.count() == 2 then
-                product.description = descDom.first().text 
+        begin 
+            html = open(@url)
+            doc = Nokogiri::HTML(html).css(CSS_SELECTOR).first()
+            if (!doc.nil?) then
+                product = Product.new()
+                product.id = doc['id'].split('-')[1]
+                product.title = doc.css(CSS_TITLE_SELECTOR).text
+                #product.description = doc.css(CSS_DESC_SELECTOR).text
+                product.price = doc.css(CSS_PRICE_SELECTOR).first()['content']
+                product.availability = doc.css(CSS_AVAILABILITY_SELECTOR).first()['href'] == IN_STOCK
+                product.vendor_code = doc.css(CSS_VENDOR_CODE_SELECTOR).text
+    
+                descDom = doc.css(CSS_DESC_SELECTOR)
+    
+                if descDom.count() == 2 then
+                    product.description = descDom.first().text 
+                end
+    
+                doc.css('div.images a').each do |img|
+                    product.images.push(img['href'])
+                end
+    
+                doc.css(CSS_CATEGORIES_CODE_SELECTOR).each do |link|
+                    product.categories.push(CategoryProvider.get_by_name(Category.new(nil,link.text)))
+                end
+    
+                parse_attributes(product, doc,'div#tab-description table tr')
+                parse_attributes(product, doc,'div#tab-additional_information table tr')
+                
+                #product.attributes.each do |item|
+                #    puts item.attribute.id.to_s + ' ' + item.attribute.title + ' | ' + item.value.id.to_s + ' ' + item.value.value
+                #end
+    
+                ProductProvider.push(product)
             end
 
-            doc.css('div.images a').each do |img|
-                product.images.push(img['href'])
-            end
-
-            doc.css(CSS_CATEGORIES_CODE_SELECTOR).each do |link|
-                product.categories.push(CategoryProvider.get_by_name(link.text))
-            end
-
-            parse_attributes(product, doc,'div#tab-description table tr')
-            parse_attributes(product, doc,'div#tab-additional_information table tr')
-            
-            #product.attributes.each do |item|
-            #    puts item.attribute.id.to_s + ' ' + item.attribute.title + ' | ' + item.value.id.to_s + ' ' + item.value.value
-            #end
-
-            ProductProvider.push(product)
+        rescue OpenURI::HTTPError => e
+            puts e.message  
+            puts "Site is not reachable!"
+            #abort
         end
     end
 

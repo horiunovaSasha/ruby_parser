@@ -11,22 +11,28 @@ class ListParser
     end
 
     def parse()
-        html = open(@url)
-        doc = Nokogiri::HTML(html)
+        begin 
+            html = open(@url)
+            doc = Nokogiri::HTML(html)
 
-        doc.css(CSS_SELECTOR).each do |link|
-            ProductParser
-                .new(link['href'])
-                .parse()
+            doc.css(CSS_SELECTOR).each do |link|
+                ProductParser
+                    .new(link['href'])
+                    .parse()
+            end
+            next_link = nil#doc.css('div.paginator a.nav-next').first()
+
+            unless next_link.nil? then
+                puts ProductProvider.get_all().count()
+                @url = next_link['href']
+                parse()
+            end
         end
 
-        next_link = nil#doc.css('div.paginator a.nav-next').first()
-
-        unless next_link.nil? then
-            puts ProductProvider.get_all().count()
-            @url = next_link['href']
-            parse()
-        end
+    rescue OpenURI::HTTPError => e
+        puts e.message  
+        puts "Site is not reachable!"
+        abort
         
     end
 end
